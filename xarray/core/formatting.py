@@ -26,48 +26,129 @@ if TYPE_CHECKING:
     from xarray.core.datatree import DataTree
 UNITS = ('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB')
 
+def _mapping_repr(mapping, title, summarizer, expand_option_name=None, col_width=None):
+    """Create a one-line summary of a mapping object."""
+    if not mapping:
+        return f"{title}:\n{EMPTY_REPR}"
+
+    if expand_option_name is not None and _get_boolean_with_default(expand_option_name):
+        summary = []
+        for k, v in mapping.items():
+            summary.append(summarizer(k, v, col_width=col_width))
+    else:
+        summary = [summarizer(k, v, col_width=col_width) for k, v in mapping.items()]
+
+    return f"{title}:\n" + "\n".join(summary)
+
 def pretty_print(x, numchars: int):
     """Given an object `x`, call `str(x)` and format the returned string so
     that it is numchars long, padding with trailing spaces or truncating with
     ellipses as necessary
     """
-    pass
+    s = str(x)
+    if len(s) > numchars:
+        return s[:(numchars - 3)] + "..."
+    else:
+        return s.ljust(numchars)
 
 def first_n_items(array, n_desired):
     """Returns the first n_desired items of an array"""
-    pass
+    if array is None:
+        return []
+    return array[0:n_desired]
 
 def last_n_items(array, n_desired):
     """Returns the last n_desired items of an array"""
-    pass
+    if array is None:
+        return []
+    return array[-n_desired:]
 
 def last_item(array):
     """Returns the last item of an array in a list or an empty list."""
-    pass
+    if array is None or len(array) == 0:
+        return []
+    return [array[-1]]
 
 def calc_max_rows_first(max_rows: int) -> int:
     """Calculate the first rows to maintain the max number of rows."""
-    pass
+    if max_rows is None:
+        return None
+    return max(1, (max_rows + 1) // 2)
 
 def calc_max_rows_last(max_rows: int) -> int:
     """Calculate the last rows to maintain the max number of rows."""
-    pass
+    if max_rows is None:
+        return None
+    return max(1, max_rows // 2)
 
 def format_timestamp(t):
     """Cast given object to a Timestamp and return a nicely formatted string"""
-    pass
+    try:
+        datetime_str = pd.Timestamp(t).isoformat()
+        try:
+            date_str, time_str = datetime_str.split('T')
+        except ValueError:
+            # catch NaT and others that don't split nicely
+            return datetime_str
+        else:
+            if time_str == '00:00:00':
+                return date_str
+            else:
+                return f'{date_str} {time_str}'
+    except OutOfBoundsDatetime:
+        return str(t)
 
 def format_timedelta(t, timedelta_format=None):
     """Cast given object to a Timestamp and return a nicely formatted string"""
-    pass
+    if timedelta_format is None:
+        timedelta_format = 'auto'
+
+    if isinstance(t, pd.Timedelta):
+        t = t.to_pytimedelta()
+
+    if timedelta_format == 'date':
+        return str(t)
+    elif timedelta_format == 'auto':
+        if t == pd.Timedelta(0):
+            return '0:00:00'
+        else:
+            total_seconds = t.total_seconds()
+            days = int(total_seconds // (24 * 3600))
+            remainder = total_seconds % (24 * 3600)
+            hours = int(remainder // 3600)
+            remainder = remainder % 3600
+            minutes = int(remainder // 60)
+            seconds = int(remainder % 60)
+            microseconds = int(t.microseconds)
+
+            if days == 0:
+                if microseconds:
+                    return f'{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}'
+                else:
+                    return f'{hours:02d}:{minutes:02d}:{seconds:02d}'
+            else:
+                return f'{days} days {hours:02d}:{minutes:02d}:{seconds:02d}'
+    else:
+        raise ValueError(f"Unknown timedelta_format: {timedelta_format}")
 
 def format_item(x, timedelta_format=None, quote_strings=True):
     """Returns a succinct summary of an object as a string"""
-    pass
+    if isinstance(x, (np.datetime64, datetime)):
+        return format_timestamp(x)
+    elif isinstance(x, (np.timedelta64, timedelta, pd.Timedelta)):
+        return format_timedelta(x, timedelta_format=timedelta_format)
+    elif isinstance(x, (str, bytes)):
+        return repr(x) if quote_strings else str(x)
+    elif isinstance(x, (float, np.float_)):
+        return f'{x:.4g}'
+    else:
+        return str(x)
 
 def format_items(x):
     """Returns a succinct summaries of all items in a sequence as strings"""
-    pass
+    if is_duck_array(x):
+        x = to_numpy(x)
+    return [format_item(xi) for xi in x]
 
 def format_array_flat(array, max_width: int):
     """Return a formatted string for as many items in the flattened version of
