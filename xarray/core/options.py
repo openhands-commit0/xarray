@@ -7,6 +7,11 @@ def _positive_integer(value: Any) -> bool:
     """Validator for positive integers."""
     return isinstance(value, int) and value > 0
 
+def _get_boolean_with_default(option: str) -> bool:
+    """Get a boolean option, interpreting 'default' as True."""
+    value = OPTIONS[option]
+    return True if value == 'default' else bool(value)
+
 def _warn_on_setting_enable_cftimeindex(value: bool) -> None:
     """Warn if enable_cftimeindex is being set."""
     if not value:
