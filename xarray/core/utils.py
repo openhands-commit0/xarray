@@ -183,6 +183,41 @@ def compat_dict_union(first_dict: Mapping[K, V], second_dict: Mapping[K, V], com
     """
     pass
 
+class FrozenDict(Mapping[K, V]):
+    """Immutable dictionary.
+
+    Implements the Mapping interface. Items cannot be added or removed after
+    initialization.
+    """
+    __slots__ = ('_d',)
+
+    def __init__(self, *args, **kwargs):
+        self._d = dict(*args, **kwargs)
+
+    def __getitem__(self, key: K) -> V:
+        return self._d[key]
+
+    def __iter__(self) -> Iterator[K]:
+        return iter(self._d)
+
+    def __len__(self) -> int:
+        return len(self._d)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._d
+
+    def __repr__(self) -> str:
+        return f'{type(self).__name__}({self._d!r})'
+
+    def keys(self) -> KeysView[K]:
+        return self._d.keys()
+
+    def items(self) -> ItemsView[K, V]:
+        return self._d.items()
+
+    def values(self) -> ValuesView[V]:
+        return self._d.values()
+
 class Frozen(Mapping[K, V]):
     """Wrapper around an object implementing the mapping interface to make it
     immutable. If you really want to modify the mapping, the mutable version is
