@@ -115,8 +115,8 @@ class CFTimeIndex(pd.Index):
         full_repr_str = f'{klass_name}([{datastr}], {attrs_str})'
         if len(full_repr_str) > display_width:
             if len(attrs_str) >= display_width - offset:
-                attrs_str = attrs_str.replace(',', f',\n{' ' * (offset - 2)}')
-            full_repr_str = f'{klass_name}([{datastr}],\n{' ' * (offset - 1)}{attrs_str})'
+                attrs_str = attrs_str.replace(',', f',\n{" " * (offset - 2)}')
+            full_repr_str = f'{klass_name}([{datastr}],\n{" " * (offset - 1)}{attrs_str})'
         return full_repr_str
 
     def _partial_date_slice(self, resolution, parsed):
