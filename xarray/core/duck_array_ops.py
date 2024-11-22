@@ -518,6 +518,14 @@ def least_squares(lhs, rhs, rcond=None, skipna=False):
     else:
         return np.linalg.lstsq(lhs, rhs, rcond=rcond)
 
+def astype(data, dtype, copy=True):
+    """Cast data array to dtype, properly handling dask arrays."""
+    if is_duck_dask_array(data):
+        import dask.array as da
+        return da.astype(data, dtype=dtype, copy=copy)
+    else:
+        return np.asarray(data, dtype=dtype)
+
 def _push(array, n: int | None=None, axis: int=-1):
     """
     Use either bottleneck or numbagg depending on options & what's available
