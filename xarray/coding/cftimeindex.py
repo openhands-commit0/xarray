@@ -110,7 +110,7 @@ class CFTimeIndex(pd.Index):
         else:
             front_str = format_times(self.values[:REPR_ELLIPSIS_SHOW_ITEMS_FRONT_END], display_width, offset=offset, first_row_offset=0, last_row_end=',')
             end_str = format_times(self.values[-REPR_ELLIPSIS_SHOW_ITEMS_FRONT_END:], display_width, offset=offset, first_row_offset=offset)
-            datastr = '\n'.join([front_str, f'{' ' * offset}...', end_str])
+            datastr = '\n'.join([front_str, f'{" " * offset}...', end_str])
         attrs_str = format_attrs(self)
         full_repr_str = f'{klass_name}([{datastr}], {attrs_str})'
         if len(full_repr_str) > display_width:
