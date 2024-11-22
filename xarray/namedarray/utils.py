@@ -160,6 +160,22 @@ class ReprObject:
         from dask.base import normalize_token
         return normalize_token((type(self), self._value))
 
+def is_dask_collection(x: Any) -> TypeGuard[DaskCollection]:
+    """Test if an object is a dask collection."""
+    try:
+        from dask.base import is_dask_collection as _is_dask_collection
+        return _is_dask_collection(x)
+    except ImportError:
+        return False
+
+def is_duck_array(value: Any) -> TypeGuard[duckarray]:
+    """Check if value is a duck array."""
+    return hasattr(value, '__array_function__') or hasattr(value, '__array_namespace__')
+
+def is_duck_dask_array(value: Any) -> TypeGuard[DaskArray]:
+    """Check if value is a dask array."""
+    return is_duck_array(value) and is_dask_collection(value)
+
 def either_dict_or_kwargs(pos_kwargs: Mapping[K, V] | None, kw_kwargs: Mapping[str, V], func_name: str | None=None) -> dict[Hashable, V]:
     """Return a single dictionary combining dict and kwargs.
 
