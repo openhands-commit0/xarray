@@ -67,6 +67,22 @@ def mod_version(mod: ModType) -> Version:
         _cached_duck_array_modules[mod] = DuckArrayModule(mod)
     return _cached_duck_array_modules[mod].version
 
+def to_numpy(array: Any) -> np.ndarray:
+    """Convert an array-like object to a numpy array."""
+    if hasattr(array, '__array_function__'):
+        return np.asarray(array)
+    elif hasattr(array, 'to_numpy'):
+        return array.to_numpy()
+    else:
+        return np.asarray(array)
+
+def to_duck_array(array: Any) -> duckarray:
+    """Convert an array-like object to a duck array."""
+    if is_duck_array(array):
+        return array
+    else:
+        return np.asarray(array)
+
 def is_chunked_array(x: Any) -> bool:
     """Check if an array is a chunked array (e.g., dask array)."""
     return is_duck_dask_array(x)
