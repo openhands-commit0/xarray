@@ -57,8 +57,16 @@ _cached_duck_array_modules: dict[ModType, DuckArrayModule] = {}
 
 def array_type(mod: ModType) -> DuckArrayTypes:
     """Quick wrapper to get the array class of the module."""
-    pass
+    if mod not in _cached_duck_array_modules:
+        _cached_duck_array_modules[mod] = DuckArrayModule(mod)
+    return _cached_duck_array_modules[mod].type
 
 def mod_version(mod: ModType) -> Version:
     """Quick wrapper to get the version of the module."""
-    pass
+    if mod not in _cached_duck_array_modules:
+        _cached_duck_array_modules[mod] = DuckArrayModule(mod)
+    return _cached_duck_array_modules[mod].version
+
+def is_chunked_array(x: Any) -> bool:
+    """Check if an array is a chunked array (e.g., dask array)."""
+    return is_duck_dask_array(x)
