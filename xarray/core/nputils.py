@@ -38,15 +38,53 @@ def inverse_permutation(indices: np.ndarray, N: int | None=None) -> np.ndarray:
         Integer indices to take from the original array to create the
         permutation.
     """
-    pass
+    if N is None:
+        N = len(indices)
+    result = np.arange(N)
+    result[indices] = np.arange(len(indices))
+    return result
 
 def _is_contiguous(positions):
     """Given a non-empty list, does it consist of contiguous integers?"""
-    pass
+    if not positions:
+        return True
+    return np.array_equal(positions, range(min(positions), max(positions) + 1))
 
 def _advanced_indexer_subspaces(key):
     """Indices of the advanced indexes subspaces for mixed indexing and vindex."""
-    pass
+    if not isinstance(key, tuple):
+        key = (key,)
+    
+    positions = []
+    for i, k in enumerate(key):
+        if isinstance(k, (np.ndarray, list)) and isinstance(k[0], (int, np.integer)):
+            positions.append(i)
+    
+    mixed_positions = []
+    vindex_positions = []
+    
+    if positions:
+        # Split positions into mixed and vindex depending on whether they form
+        # contiguous spans when sorted
+        spans = []
+        start = positions[0]
+        end = positions[0]
+        for p in positions[1:]:
+            if p == end + 1:
+                end = p
+            else:
+                spans.append((start, end))
+                start = p
+                end = p
+        spans.append((start, end))
+        
+        for start, end in spans:
+            if start == end:
+                vindex_positions.append(start)
+            else:
+                mixed_positions.extend(range(start, end + 1))
+    
+    return mixed_positions, vindex_positions
 
 class NumpyVIndexAdapter:
     """Object that implements indexing like vindex on a np.ndarray.
@@ -66,6 +104,23 @@ class NumpyVIndexAdapter:
         """Value must have dimensionality matching the key."""
         mixed_positions, vindex_positions = _advanced_indexer_subspaces(key)
         self._array[key] = np.moveaxis(value, vindex_positions, mixed_positions)
+
+def _create_method(name: str) -> Callable:
+    """Create a method that dispatches to bottleneck or numpy based on OPTIONS."""
+    def method(values, axis=None, **kwargs):
+        if (
+            OPTIONS["use_bottleneck"]
+            and _BOTTLENECK_AVAILABLE
+            and not isinstance(values, np.ma.MaskedArray)
+            and not is_duck_array(values)
+            and not kwargs
+        ):
+            try:
+                return getattr(bn, name)(values, axis=axis)
+            except (ValueError, AttributeError):
+                pass
+        return getattr(np, name)(values, axis=axis, **kwargs)
+    return method
 nanmin = _create_method('nanmin')
 nanmax = _create_method('nanmax')
 nanmean = _create_method('nanmean')
