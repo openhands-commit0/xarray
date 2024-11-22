@@ -8,9 +8,23 @@ type hints.
 from __future__ import annotations
 from collections import namedtuple
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 if TYPE_CHECKING:
     from xarray.core.datatree import DataTree
+
+T = TypeVar('T')
+
+def _last_iter(iterable: Iterable[T]) -> Iterator[tuple[T, bool]]:
+    """Iterate and generate a tuple with a flag for the last item."""
+    iterator = iter(iterable)
+    try:
+        last = next(iterator)
+    except StopIteration:
+        return
+    for item in iterator:
+        yield last, False
+        last = item
+    yield last, True
 Row = namedtuple('Row', ('pre', 'fill', 'node'))
 
 class AbstractStyle:
@@ -32,7 +46,7 @@ class AbstractStyle:
     @property
     def empty(self) -> str:
         """Empty string as placeholder."""
-        pass
+        return ' ' * len(self.vertical)
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}()'
@@ -146,6 +160,30 @@ class RenderDataTree:
         self.childiter = childiter
         self.maxlevel = maxlevel
 
+    def __next(self, node: DataTree, continues: tuple[bool, ...]) -> Iterator[Row]:
+        """Iterate over tree with level information."""
+        # Prepare level
+        level = len(continues)
+        if self.maxlevel is not None and level > self.maxlevel:
+            return
+
+        # Prepare prefix
+        if level == 0:
+            pre = ''
+        else:
+            pre = ''.join(self.style.vertical if cont else self.style.empty for cont in continues[:-1])
+            pre += self.style.cont if continues[-1] else self.style.end
+
+        # Yield current node
+        yield Row(pre, pre.replace(self.style.cont, self.style.vertical), node)
+
+        # Recurse for children
+        children = list(node.children.values())
+        if children:
+            children = self.childiter(children)
+            for child, is_last in _last_iter(children):
+                yield from self.__next(child, continues + (not is_last,))
+
     def __iter__(self) -> Iterator[Row]:
         return self.__next(self.node, tuple())
 
@@ -155,7 +193,7 @@ class RenderDataTree:
     def __repr__(self) -> str:
         classname = self.__class__.__name__
         args = [repr(self.node), f'style={repr(self.style)}', f'childiter={repr(self.childiter)}']
-        return f'{classname}({', '.join(args)})'
+        return f"{classname}({', '.join(args)})"
 
     def by_attr(self, attrname: str='name') -> str:
         """
@@ -189,4 +227,7 @@ class RenderDataTree:
             └── sub1C
                 └── sub1Ca
         """
-        pass
+        lines = []
+        for pre, _, node in self:
+            lines.append(f"{pre}{getattr(node, attrname)}")
+        return '\n'.join(lines)
