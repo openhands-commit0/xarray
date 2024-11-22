@@ -1,7 +1,25 @@
 from __future__ import annotations
 import warnings
-from typing import TYPE_CHECKING, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 from xarray.core.utils import FrozenDict
+
+def _positive_integer(value: Any) -> bool:
+    """Validator for positive integers."""
+    return isinstance(value, int) and value > 0
+
+def _warn_on_setting_enable_cftimeindex(value: bool) -> None:
+    """Warn if enable_cftimeindex is being set."""
+    if not value:
+        warnings.warn(
+            "Setting enable_cftimeindex=False will be deprecated in a future version of xarray.",
+            FutureWarning,
+            stacklevel=3,
+        )
+
+def _set_file_cache_maxsize(value: int) -> None:
+    """Set the file cache maxsize."""
+    from xarray.backends.file_manager import FILE_CACHE
+    FILE_CACHE.maxsize = value
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
     Options = Literal['arithmetic_join', 'cmap_divergent', 'cmap_sequential', 'display_max_rows', 'display_values_threshold', 'display_style', 'display_width', 'display_expand_attrs', 'display_expand_coords', 'display_expand_data_vars', 'display_expand_data', 'display_expand_groups', 'display_expand_indexes', 'display_default_indexes', 'enable_cftimeindex', 'file_cache_maxsize', 'keep_attrs', 'warn_for_unclosed_files', 'use_bottleneck', 'use_numbagg', 'use_opt_einsum', 'use_flox']
@@ -187,4 +205,4 @@ def get_options():
     set_options
 
     """
-    pass
+    return FrozenDict(OPTIONS)
